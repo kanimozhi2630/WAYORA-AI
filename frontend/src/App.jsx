@@ -5,7 +5,7 @@ import ConversationHistory from "./components/ConversationHistory";
 import DetectionHistory from "./components/DetectionHistory";
 import VoiceSettings from "./components/VoiceSettings";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // Ensure persistent unique client identity for privacy and user separation
 function getOrCreateUserId() {
@@ -241,6 +241,17 @@ export default function App() {
   };
 
   const startCamera = async (facingModeConstraint = null, label = "default") => {
+    // Prefer rear (environment) camera when no explicit constraint is provided
+    const effectiveFacingMode = facingModeConstraint || "environment";
+    // Build constraints with explicit facingMode, width/height ideal values
+    const constraints = {
+      video: {
+        facingMode: { ideal: effectiveFacingMode },
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+      },
+    };
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       const errMsg = "Camera API (getUserMedia) not supported in this browser.";
       setCameraError(errMsg);
