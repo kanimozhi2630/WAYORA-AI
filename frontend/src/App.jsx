@@ -70,7 +70,8 @@ export default function App() {
         }
       })
       .catch((err) => console.warn("Initial settings fetch:", err));
-  }, [userId]);
+  };
+ [userId]);
 
   // ---------- Conversational Memory & Refs ----------
   const chatHistoryRef = useRef([]);
@@ -91,11 +92,13 @@ export default function App() {
 
   useEffect(() => {
     isVoiceEnabledRef.current = voiceEnabled;
-  }, [voiceEnabled]);
+  };
+ [voiceEnabled]);
 
   useEffect(() => {
     processingRef.current = processing;
-  }, [processing]);
+  };
+ [processing]);
 
   // ---------- Speech Synthesis Helper with User Preferences ----------
   const speak = (msg, interrupt = false, onComplete = null) => {
@@ -124,7 +127,6 @@ export default function App() {
     utter.onstart = () => {
       isSpeakingRef.current = true;
       setAssistantState("speaking");
-    };
 
     utter.onend = () => {
       isSpeakingRef.current = false;
@@ -134,7 +136,6 @@ export default function App() {
         setAssistantState("idle");
       }
       if (onComplete) onComplete();
-    };
 
     utter.onerror = () => {
       isSpeakingRef.current = false;
@@ -143,20 +144,20 @@ export default function App() {
       } else {
         setAssistantState("idle");
       }
-    };
 
     window.speechSynthesis.speak(utter);
-  };
+
 
   // Helper to log actual deduplicated YOLO detection to MongoDB
   const logDetectionToDatabase = async (label, confidence, direction) => {
     try {
-      await fetch(`${API_BASE_URL}/api/detections`, {
+      await fetch(API_BASE_URL + '/api/detections', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-User-ID": userId,
-        },
+        };
+
         body: JSON.stringify({
           label,
           confidence,
@@ -166,7 +167,7 @@ export default function App() {
     } catch (e) {
       // Background non-blocking log
     }
-  };
+
 
   // ---------- Conversational AI Client (/chat) ----------
   const sendToChatAI = async (userMessage) => {
@@ -185,15 +186,16 @@ export default function App() {
             confidence: d.confidence,
             isApproaching: d.isApproaching || false,
           })),
-        },
-      };
+        };
 
-      const resp = await fetch(`${API_BASE_URL}/chat`, {
+  
+      const resp = await fetch(API_BASE_URL + '/chat', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-User-ID": userId,
-        },
+        };
+
         body: JSON.stringify(payload),
       });
 
@@ -221,7 +223,7 @@ export default function App() {
       setAiResponse(fallbackReply);
       speak(fallbackReply, true);
     }
-  };
+
 
   // ---------- Camera Controls ----------
   const stopCurrentStream = () => {
@@ -238,7 +240,7 @@ export default function App() {
     setActiveDetections([]);
     latestDetectionsRef.current = [];
     trackerRef.current.reset();
-  };
+
 
   const startCamera = async (facingModeConstraint = null, label = "default") => {
   // Determine which camera to request. Default is rear (environment).
@@ -264,8 +266,9 @@ export default function App() {
       facingMode: { ideal: effectiveFacingMode },
       width: { ideal: 640 },
       height: { ideal: 480 },
-    },
-  };
+    };
+
+
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -313,96 +316,9 @@ export default function App() {
   }
 };
     
-    const effectiveFacingMode = facingModeConstraint || "environment";
-    // Build constraints with explicit facingMode, width/height ideal values
-    const constraints = {
-      video: {
-        facingMode: { ideal: effectiveFacingMode },
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-      },
-    };
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      const errMsg = "Camera API (getUserMedia) not supported in this browser.";
-      setCameraError(errMsg);
-      setStatusMsg(errMsg);
-      speak("Camera is not supported on this browser.", true);
-      return;
-    }
 
-    stopCurrentStream();
-    setCameraError("");
-    setStatusMsg(`Starting ${label === "default" ? "" : label + " "}camera...`);
 
-    let constraints = { video: true };
-    if (facingModeConstraint) {
-      constraints = {
-        video: {
-          facingMode: { ideal: facingModeConstraint },
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
-      };
-    } else {
-      constraints = {
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
-      };
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (!videoRef.current) {
-        throw new Error("Video element is not available.");
-      }
-
-      videoRef.current.srcObject = stream;
-
-      try {
-        await videoRef.current.play();
-      } catch (playErr) {
-        console.warn("Autoplay was prevented or postponed:", playErr);
-      }
-
-      setCameraActive(true);
-      setActiveCamera(label);
-      setCameraError("");
-
-      const startedMsg =
-        label === "front"
-          ? "Front camera activated."
-          : label === "back"
-          ? "Rear camera activated."
-          : "Camera started.";
-
-      setStatusMsg(startedMsg);
-      speak(startedMsg, true);
-
-      if (captureIntervalRef.current) {
-        clearInterval(captureIntervalRef.current);
-      }
-      captureIntervalRef.current = setInterval(captureAndDetect, 1000);
-    } catch (err) {
-      console.error("Camera access error:", err);
-      let errMsg = err.message || "Failed to start camera.";
-      if (err.name === "NotAllowedError") {
-        errMsg = "Camera permission denied. Please allow camera access in browser settings.";
-      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-        errMsg = "Requested camera device not found on this system.";
-      } else if (err.name === "OverconstrainedError") {
-        errMsg = "Requested camera configuration not supported.";
-      }
-
-      setCameraError(errMsg);
-      setStatusMsg(errMsg);
-      setCameraActive(false);
-      setActiveCamera(null);
-      speak(errMsg, true);
-    }
-  };
 
   const handleStart = () => startCamera(null, "default");
   const handleStartFront = () => startCamera("user", "front");
@@ -416,6 +332,7 @@ export default function App() {
     speak("Camera stopped.", true);
   };
 
+
   // ---------- Overlay Canvas Drawing ----------
   const clearOverlay = () => {
     const canvas = overlayRef.current;
@@ -423,7 +340,7 @@ export default function App() {
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-  };
+
 
   const drawDetections = (trackedObjects) => {
     const canvas = overlayRef.current;
@@ -487,7 +404,7 @@ export default function App() {
       ctx.fillStyle = "#F2EEE8";
       ctx.fillText(displayLabel, x1 + 5, Math.max(16, y1 - 6));
     });
-  };
+
 
   // ---------- Directional Alerts & Movement Processing ----------
   const processDetections = (trackedObjects) => {
@@ -582,7 +499,7 @@ export default function App() {
         speak(message, false);
       }
     }
-  };
+
 
   // ---------- Periodic YOLO Frame Detection Loop ----------
   const captureAndDetect = async () => {
@@ -657,7 +574,8 @@ export default function App() {
             setProcessing(false);
             processingRef.current = false;
           }
-        },
+        };
+
         "image/jpeg",
         0.8
       );
@@ -666,7 +584,7 @@ export default function App() {
       setProcessing(false);
       processingRef.current = false;
     }
-  };
+
 
   // ---------- Scene Understanding Service (Module 3) ----------
   const requestSceneDescription = async () => {
@@ -722,11 +640,12 @@ export default function App() {
         } finally {
           setIsAnalyzingScene(false);
         }
-      }, "image/jpeg", 0.85);
+      };
+ "image/jpeg", 0.85);
     } catch (e) {
       setIsAnalyzingScene(false);
     }
-  };
+
 
   // ---------- OCR Signboard Reading Service (Module 6) ----------
   const requestOCR = async () => {
@@ -776,11 +695,12 @@ export default function App() {
           setAiResponse(fallback);
           speak(fallback, true);
         }
-      }, "image/jpeg", 0.9);
+      };
+ "image/jpeg", 0.9);
     } catch (e) {
       console.error(e);
     }
-  };
+
 
   // ---------- Conversational & Voice Command Router ----------
   const processVoiceCommand = (rawTranscript) => {
@@ -847,9 +767,10 @@ export default function App() {
     } finally {
       setTimeout(() => {
         commandLock.current = false;
-      }, 500);
+      };
+ 500);
     }
-  };
+
 
   // ---------- Speech Recognition Lifecycle ----------
   const startSpeechRecognition = async () => {
@@ -894,8 +815,7 @@ export default function App() {
         if (!isSpeakingRef.current) {
           setAssistantState("listening");
         }
-      };
-
+  
       recognizer.onresult = (event) => {
         if (isSpeakingRef.current) return;
 
@@ -908,8 +828,7 @@ export default function App() {
             processVoiceCommand(transcript);
           }
         }
-      };
-
+  
       recognizer.onerror = (event) => {
         console.warn("Speech recognition event:", event.error);
         if (event.error === "not-allowed") {
@@ -920,8 +839,7 @@ export default function App() {
         } else if (event.error !== "no-speech" && event.error !== "aborted") {
           setVoiceError(`Voice notice: ${event.error}`);
         }
-      };
-
+  
       recognizer.onend = () => {
         setIsListening(false);
         if (isVoiceEnabledRef.current) {
@@ -934,12 +852,12 @@ export default function App() {
                 // Ignore if already active
               }
             }
-          }, 300);
+          };
+ 300);
         } else {
           setAssistantState("idle");
         }
-      };
-
+  
       recognizer.start();
       setVoiceEnabled(true);
       speak("Voice assistance enabled.", true);
@@ -947,7 +865,7 @@ export default function App() {
       console.error("Failed to start speech recognition:", e);
       setVoiceError("Could not initialize voice recognition.");
     }
-  };
+
 
   const stopSpeechRecognition = () => {
     setVoiceEnabled(false);
@@ -960,7 +878,7 @@ export default function App() {
     setIsListening(false);
     setAssistantState("idle");
     speak("Voice assistance disabled.", true);
-  };
+
 
   const toggleVoice = () => {
     if (voiceEnabled) {
@@ -968,7 +886,7 @@ export default function App() {
     } else {
       startSpeechRecognition();
     }
-  };
+
 
   useEffect(() => {
     return () => {
@@ -977,8 +895,8 @@ export default function App() {
         recognizerRef.current.abort();
       }
       clearTimeout(restartTimeoutRef.current);
-    };
-  }, []);
+  };
+ []);
 
   const getAssistantBadge = () => {
     switch (assistantState) {
@@ -991,7 +909,7 @@ export default function App() {
       default:
         return <span className="mic-status idle">🔇 Mic Off</span>;
     }
-  };
+
 
   const handleTestVoiceAudio = (settings) => {
     if (!window.speechSynthesis) return;
@@ -1006,14 +924,14 @@ export default function App() {
       if (matched) utter.voice = matched;
     }
     window.speechSynthesis.speak(utter);
-  };
+
 
   const handleSettingsSaved = (updated) => {
     setVoiceSettings(updated);
     if (updated.alerts_muted !== undefined) {
       setAlertEnabled(!updated.alerts_muted);
     }
-  };
+
 
   const handleToggleConsent = async (consent) => {
     const updated = { ...voiceSettings, consent_save_history: consent };
@@ -1024,11 +942,12 @@ export default function App() {
         headers: {
           "Content-Type": "application/json",
           "X-User-ID": userId,
-        },
+        };
+
         body: JSON.stringify(updated),
       });
     } catch (e) {}
-  };
+
 
   return (
     <div className="app-container" role="main">
