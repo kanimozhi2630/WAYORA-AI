@@ -241,7 +241,78 @@ export default function App() {
   };
 
   const startCamera = async (facingModeConstraint = null, label = "default") => {
-    // Prefer rear (environment) camera when no explicit constraint is provided
+  // Determine which camera to request. Default is rear (environment).
+  const effectiveFacingMode = facingModeConstraint || "environment";
+
+  // Verify getUserMedia support
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const errMsg = "Camera API (getUserMedia) not supported in this browser.";
+    setCameraError(errMsg);
+    setStatusMsg(errMsg);
+    speak("Camera is not supported on this browser.", true);
+    return;
+  }
+
+  // Stop any previous stream before opening a new one
+  stopCurrentStream();
+  setCameraError("");
+  setStatusMsg(`Starting ${label === "default" ? "" : label + " "}camera...`);
+
+  // Build the constraints once, using the effective facing mode
+  const constraints = {
+    video: {
+      facingMode: { ideal: effectiveFacingMode },
+      width: { ideal: 640 },
+      height: { ideal: 480 },
+    },
+  };
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (!videoRef.current) {
+      throw new Error("Video element is not available.");
+    }
+    videoRef.current.srcObject = stream;
+    try {
+      await videoRef.current.play();
+    } catch (playErr) {
+      console.warn("Autoplay was prevented or postponed:", playErr);
+    }
+    setCameraActive(true);
+    setActiveCamera(label);
+    setCameraError("");
+
+    const startedMsg =
+      label === "front"
+        ? "Front camera activated."
+        : label === "back"
+        ? "Rear camera activated."
+        : "Camera started.";
+    setStatusMsg(startedMsg);
+    speak(startedMsg, true);
+
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+    captureIntervalRef.current = setInterval(captureAndDetect, 1000);
+  } catch (err) {
+    console.error("Camera access error:", err);
+    let errMsg = err.message || "Failed to start camera.";
+    if (err.name === "NotAllowedError") {
+      errMsg = "Camera permission denied. Please allow camera access in browser settings.";
+    } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+      errMsg = "Requested camera device not found on this system.";
+    } else if (err.name === "OverconstrainedError") {
+      errMsg = "Requested camera configuration not supported.";
+    }
+    setCameraError(errMsg);
+    setStatusMsg(errMsg);
+    setCameraActive(false);
+    setActiveCamera(null);
+    speak(errMsg, true);
+  }
+};
+    
     const effectiveFacingMode = facingModeConstraint || "environment";
     // Build constraints with explicit facingMode, width/height ideal values
     const constraints = {
