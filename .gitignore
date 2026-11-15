@@ -1,0 +1,29 @@
+# Python virtual envs
+venv/
+venv_new/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+
+# Node
+node_modules/
+frontend/dist/
+npm-debug.log
+
+# Secrets
+.env
+backend/.env
+
+# YOLO model files (large)
+*.pt
+*.weights
+*.onnx
+
+# OS / IDE artefacts
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
